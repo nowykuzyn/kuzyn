@@ -18,15 +18,16 @@
                 {% for village_id in data.bot %}
                     <tr>
                         <td>{{ village_id }}</td>
-                        <td>{{ data.bot[village_id].public.name }}</td>
+                        {% set vill = data.bot[village_id] %}
+                        <td>{% if vill.name is defined and vill.name %}{{ vill.name }}{% elif vill.public is defined and vill.public.name %}{{ vill.public.name }}{% else %}Brak nazwy{% endif %}</td>
                         <td>
-                            <img src="/static/images/wood.png" /> {{ data.bot[village_id].resources.wood }}
-                            <img src="/static/images/stone.png" /> {{ data.bot[village_id].resources.stone }}
-                            <img src="/static/images/iron.png" /> {{ data.bot[village_id].resources.iron }}
-                            <img src="/static/images/worker.png" /> {{ data.bot[village_id].resources["pop"] }}
+                            <img src="/static/images/wood.png" /> {{ vill.resources.wood }}
+                            <img src="/static/images/stone.png" /> {{ vill.resources.stone }}
+                            <img src="/static/images/iron.png" /> {{ vill.resources.iron }}
+                            <img src="/static/images/worker.png" /> {{ vill.resources["pop"] }}
                         </td>
-                        <td>{% if village_id in data.config.get('villages', {}) %} {{ data.config.get('villages', {})[village_id].building }} {% else %} Brak konfiguracji {% endif %}</td>
-                        <td>{% if village_id in data.config.get('villages', {}) %} {{ data.config.get('villages', {})[village_id].units }} {% else %} Brak konfiguracji {% endif %}</td>
+                        <td>{% if (village_id|string) in data.config.get('villages', {}) %} {{ data.config.get('villages', {})[village_id|string].building }} {% else %} Brak konfiguracji {% endif %}</td>
+                        <td>{% if (village_id|string) in data.config.get('villages', {}) %} {{ data.config.get('villages', {})[village_id|string].units }} {% else %} Brak konfiguracji {% endif %}</td>
                         <td>
                             <a href="map?center={{ village_id }}" class="btn btn-success btn-sm">Mapa</a>
                             <a href="village?id={{ village_id }}" class="btn btn-success btn-sm">Konfiguracja</a>
@@ -35,15 +36,15 @@
                     <tr class="table-secondary">
                         <td colspan="6">
                             <strong>Jednostki:</strong>
-                            {% if data.bot[village_id].troops %}
-                                {% for unit, count in data.bot[village_id].troops.items() %}
+                            {% if vill.troops %}
+                                {% for unit, count in vill.troops.items() %}
                                     <img src="/static/images/unit_{{ unit }}.png" alt="{{ unit }}" /> {{ count }}
                                 {% endfor %}
                             {% else %}
                                 Brak danych jednostek
                             {% endif %}
                             <br />
-                            <strong>Kolejka budynków:</strong> {{ data.bot[village_id].building_queue | default([]) | length }}
+                            <strong>Kolejka budynków:</strong> {{ vill.building_queue | default([]) | length }}
                         </td>
                     </tr>
                 {% endfor %}
