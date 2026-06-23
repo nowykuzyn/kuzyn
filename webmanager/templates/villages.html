@@ -1,0 +1,66 @@
+{% extends "main.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID#</th>
+                    <th>Nazwa</th>
+                    <th>Zasoby</th>
+                    <th>Budynki</th>
+                    <th>Jednostki</th>
+                    <th>Akcje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for village_id in data.bot %}
+                    <tr>
+                        <td>{{ village_id }}</td>
+                        <td>{{ data.bot[village_id].public.name }}</td>
+                        <td>
+                            <img src="/static/images/wood.png" /> {{ data.bot[village_id].resources.wood }}
+                            <img src="/static/images/stone.png" /> {{ data.bot[village_id].resources.stone }}
+                            <img src="/static/images/iron.png" /> {{ data.bot[village_id].resources.iron }}
+                            <img src="/static/images/worker.png" /> {{ data.bot[village_id].resources["pop"] }}
+                        </td>
+                        <td>{% if village_id in data.config.get('villages', {}) %} {{ data.config.get('villages', {})[village_id].building }} {% else %} Brak konfiguracji {% endif %}</td>
+                        <td>{% if village_id in data.config.get('villages', {}) %} {{ data.config.get('villages', {})[village_id].units }} {% else %} Brak konfiguracji {% endif %}</td>
+                        <td>
+                            <a href="map?center={{ village_id }}" class="btn btn-success btn-sm">Mapa</a>
+                            <a href="village?id={{ village_id }}" class="btn btn-success btn-sm">Konfiguracja</a>
+                        </td>
+                    </tr>
+                    <tr class="table-secondary">
+                        <td colspan="6">
+                            <strong>Jednostki:</strong>
+                            {% if data.bot[village_id].troops %}
+                                {% for unit, count in data.bot[village_id].troops.items() %}
+                                    <img src="/static/images/unit_{{ unit }}.png" alt="{{ unit }}" /> {{ count }}
+                                {% endfor %}
+                            {% else %}
+                                Brak danych jednostek
+                            {% endif %}
+                            <br />
+                            <strong>Kolejka budynków:</strong> {{ data.bot[village_id].building_queue | default([]) | length }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function refreshVillages() {
+    location.reload();
+}
+
+$(function(){
+    setInterval(refreshVillages, 5000);
+});
+</script>
+{% endblock %}
