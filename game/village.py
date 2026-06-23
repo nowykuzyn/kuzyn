@@ -449,6 +449,7 @@ class Village:
         self.attack.farm_assistant = False
         if assistant_conf:
             self.attack.farm_assistant = assistant_conf.get("enabled", False) or assistant_conf.get("auto_send_assistant_attacks", False)
+        self.logger.debug("Farm assistant enabled for village %s = %s", self.village_id, self.attack.farm_assistant)
 
         self.attack.farm_assistant_button = _get_assistant("farm_assistant_button", "AUTO")
         self.attack.farm_assistant_auto_wall_threshold = _get_assistant("farm_assistant_wall_threshold", 1)
@@ -617,6 +618,12 @@ class Village:
         self.run_snob_recruit()
         self.do_recruit()
         self.manage_local_resources()
+
+        # ensure farm options are configured for this village before running farming
+        try:
+            self.set_farm_options()
+        except Exception:
+            self.logger.debug("Error setting farm options for village %s", self.village_id)
 
         self.run_farming()
 
