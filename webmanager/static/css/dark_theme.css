@@ -22,7 +22,13 @@ h1,h2,h3,h4,h5{color:var(--gold-2);text-shadow:0 2px 6px rgba(181,137,43,0.12)}
 .table thead th{border-bottom:1px solid rgba(255,215,0,0.04);color:var(--gold-2)}
 .table tbody td{color:#dcdcdc}
 /* Improve contrast for secondary table rows (e.g., units/details rows) */
-tr.table-secondary td{background:linear-gradient(180deg,rgba(255,215,0,0.02),rgba(0,0,0,0.04));color:#e6e6e6;border-top:1px solid rgba(255,215,0,0.04)}
+/* Ensure secondary table rows use dark panel background to match dashboard */
+.table.table-striped tr.table-secondary td,
+.table-secondary td {
+  background:var(--panel) !important;
+  color:var(--gold-2) !important;
+  border-top:1px solid rgba(255,215,0,0.04);
+}
 .muted{color:var(--muted)}
 .panel-decor{border-left:4px solid rgba(181,137,43,0.9);padding-left:12px}
 .gold-underline{display:inline-block;position:relative}
@@ -49,6 +55,6 @@ tr.table-secondary td{background:linear-gradient(180deg,rgba(255,215,0,0.02),rgb
   border-radius:6px;
 }
 .gold-panel h5{color:var(--gold-2);font-weight:700;margin:0 0 .5rem 0}
-.units-list img{height:20px;margin-right:6px;vertical-align:middle;filter:brightness(0) invert(1) saturate(2)}
+.units-list img{height:20px;margin-right:6px;vertical-align:middle}
 .units-list .d-inline-block{color:var(--gold-2)}
 
