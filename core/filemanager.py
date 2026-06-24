@@ -121,3 +121,14 @@ class FileManager:
         with FileManager.__open_file(full_src_path) as src_file:
             with FileManager.__open_file(full_dest_path, mode="w") as dest_file:
                 dest_file.write(src_file.read())
+
+    @staticmethod
+    def save_text_file(text, path):
+        """Saves text content to a file, creating directories as needed."""
+        full_path = os.path.join(FileManager.get_root(), path)
+        directory = os.path.dirname(full_path)
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
+        # write text using utf-8
+        with open(full_path, mode="w", encoding="utf-8") as f:
+            f.write(text)

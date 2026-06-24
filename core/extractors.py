@@ -227,6 +227,11 @@ class Extractor:
         if type(res) != str:
             res = res.text
         targets = {}
+        # try to detect current village id from page to build proper place links
+        cur_vid = None
+        m_vid = re.search(r'"village"\s*:\s*\{[^}]*?"id"\s*:\s*(\d+)', res)
+        if m_vid:
+            cur_vid = m_vid.group(1)
         rows = re.findall(r'(?s)<tr[^>]*>(.*?)</tr>', res)
         for row in rows:
             # quick skip if no farm related tokens
@@ -243,21 +248,34 @@ class Extractor:
                     except Exception:
                         wall = 0
 
-            # find all anchor hrefs in the row
-            anchors = re.findall(r'(?s)<a[^>]+href="([^\"]+)"[^>]*>(.*?)</a>', row)
-            for href, inner in anchors:
+            # find all anchor tags in the row including attributes and inner HTML
+            anchors = re.findall(r'(?s)<a([^>]*)>(.*?)</a>', row)
+            for attrs, inner in anchors:
                 action = None
-                # try to find action letter in href first
-                m = re.search(r'farm[_-]?icon[_-]?([abc])', href, re.I)
-                if m:
-                    action = m.group(1)
-                else:
-                    # try inner HTML (image classes or text)
+                href = None
+                onclick = None
+                # extract attributes
+                href_m = re.search(r'href="([^"\']*)"', attrs)
+                if href_m:
+                    href = href_m.group(1)
+                onclick_m = re.search(r'onclick="([^"\']*)"', attrs)
+                if onclick_m:
+                    onclick = onclick_m.group(1)
+
+                # detect action letter from class attribute or from attributes string
+                class_m = re.search(r'class="([^"]*)"', attrs)
+                if class_m:
+                    cls = class_m.group(1)
+                    m = re.search(r'farm[_-]?icon[_-]?([abc])', cls, re.I)
+                    if m:
+                        action = m.group(1)
+
+                # fallback: look inside inner HTML or the whole row
+                if not action:
                     m2 = re.search(r'farm[_-]?icon[_-]?([abc])', inner, re.I)
                     if m2:
                         action = m2.group(1)
                     else:
-                        # fallback: look for class attributes in the whole row mentioning farm_icon and letter
                         m3 = re.search(r'farm[_-]?icon[^\w]*([abc])', row, re.I)
                         if m3:
                             action = m3.group(1)
@@ -265,23 +283,44 @@ class Extractor:
                 if not action:
                     continue
 
-                # extract village id from href using common params
                 vid = None
-                for regex in [r'farm[_-]?icon[_-]?[abc]=(\d+)', r'target=(\d+)', r'village=(\d+)', r'target_id=(\d+)']:
-                    mm = re.search(regex, href)
-                    if mm:
-                        vid = mm.group(1)
-                        break
-                if not vid:
-                    # try to find any 5+ digit number which might be vid
+                # prefer onclick pattern that contains sendUnits(village, template)
+                if onclick:
+                    m = re.search(r'sendUnits\s*\(\s*this\s*,\s*(\d+)\s*,\s*(\d+)\s*\)', onclick)
+                    if not m:
+                        # sometimes this is without 'this'
+                        m = re.search(r'sendUnits\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)', onclick)
+                    if m:
+                        vid = m.group(1)
+                        # template = m.group(2)  # template id if needed
+
+                # if no vid from onclick, try common href params
+                if not vid and href:
+                    for regex in [r'farm[_-]?icon[_-]?[abc]=(\d+)', r'target=(\d+)', r'village=(\d+)', r'target_id=(\d+)']:
+                        mm = re.search(regex, href)
+                        if mm:
+                            vid = mm.group(1)
+                            break
+                # fallback: any 4-7 digit number in href
+                if not vid and href:
                     mm2 = re.search(r'(\d{4,7})', href)
                     if mm2:
                         vid = mm2.group(1)
+
                 if not vid:
                     continue
 
+                # build a usable link: use place screen so the attacker can load the normal attack form
+                if href and href != '#':
+                    usable_link = href
+                else:
+                    if cur_vid:
+                        usable_link = f"game.php?village={cur_vid}&screen=place&target={vid}"
+                    else:
+                        usable_link = f"game.php?village=0&screen=place&target={vid}"
+                # Note: self_placeholder will be replaced later by AttackManager context if needed
                 target = targets.setdefault(str(vid), {'wall': wall, 'links': {}})
-                target['links'][action.upper()] = href
+                target['links'][action.upper()] = usable_link
 
         return targets
 
