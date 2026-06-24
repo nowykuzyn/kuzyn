@@ -700,7 +700,7 @@ class AttackManager:
     def attack_with_assistant(self, vid, troops=None):
         res = self.get_farm_assistant_link(vid)
         if not res:
-            self.logger.debug("No farm assistant link for %s", vid)
+            self.logger.info("Brak dostępnego farm assistant linku dla %s, nie można wysłać ataku", vid)
             return False
         # Helper that attempts a single farm assistant link
         def _attempt_link(button, link, target_vid, debug_capture=None):
@@ -900,8 +900,25 @@ class AttackManager:
         if not coord_text:
             coord_text = str(vid)
 
+        if not buttons:
+            self.logger.info("Brak dostępnych przycisków farm assistant dla %s, nie można wysłać ataku", coord_text)
+            return False
+
         for btn in buttons:
             link = target['links'][btn] if isinstance(target, dict) and target.get('links') else link
+            tpl = link.get('template') if isinstance(link, dict) else None
+            if tpl and tpl in self.farm_assistant_templates and self.troopmanager:
+                template_units = self.farm_assistant_templates.get(tpl, {})
+                missing = self.enough_in_village(template_units)
+                if missing:
+                    self.logger.info(
+                        "Brak jednostek dla szablonu farm assistant %s przy celu %s: %s",
+                        tpl,
+                        coord_text,
+                        missing,
+                    )
+                    continue
+
             self.logger.info("Próba ataku wioski %s przy użyciu %s", coord_text, btn)
             self.logger.debug(
                 "Trying farm assistant button %s for %s, target meta fields: %d %s",

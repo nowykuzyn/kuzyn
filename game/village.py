@@ -533,17 +533,23 @@ class Village:
                 link = None
 
             if not link:
-                self.logger.debug("No farm assistant link available for %s", vid)
+                self.logger.info("Brak farm assistant linku dla %s, pomijam cel", vid)
                 continue
 
             cached = self.attack.can_attack(vid=vid, clear=False)
-            if cached:
-                res = self.attack.attack_with_assistant(vid)
-                if res:
-                    hp = cached["high_profile"] if type(cached) == dict and "high_profile" in cached else False
-                    lp = cached["low_profile"] if type(cached) == dict and "low_profile" in cached else False
-                    self.attack.attacked(vid, scout=False, safe=True, high_profile=hp, low_profile=lp)
-                    sent += 1
+            if not cached:
+                self.logger.info("Cel %s pominięty przez sprawdzenie bezpieczeństwa lub cache", vid)
+                continue
+
+            res = self.attack.attack_with_assistant(vid)
+            if not res:
+                self.logger.info("Farm assistant nie wysłał ataku dla %s", vid)
+                continue
+
+            hp = cached["high_profile"] if type(cached) == dict and "high_profile" in cached else False
+            lp = cached["low_profile"] if type(cached) == dict and "low_profile" in cached else False
+            self.attack.attacked(vid, scout=False, safe=True, high_profile=hp, low_profile=lp)
+            sent += 1
 
         if sent:
             self.logger.info("Sent %d assistant farm attacks from village %s", sent, self.village_id)
