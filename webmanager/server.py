@@ -291,7 +291,7 @@ def get_map():
         center = None
         if sync_data['villages']:
             center = next(iter(sync_data['villages']))
-    map_payload = MapBuilder.build(sync_data['villages'], current_village=center, size=15, center_coords=center_coords)
+    map_payload = MapBuilder.build(sync_data['villages'], current_village=center, size=20, center_coords=center_coords)
     map_data = json.dumps(map_payload)
     return render_template('map.html', data=sync_data, map=map_data,
                            map_center_x=map_payload.get('center_x'),

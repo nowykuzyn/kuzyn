@@ -2,121 +2,6 @@
 
 {% block content %}
 <style>
-    #map_big, #map_whole, #map_legend, #map_config, #minimap_whole {
-        margin-bottom: 10px;
-        background: #1a1f2b;
-        border: 1px solid rgba(255, 215, 0, 0.12);
-        border-radius: 4px;
-        padding: 10px;
-    }
-
-    #map_big {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 1000;
-        background: rgba(0, 0, 0, 0.75);
-        padding: 40px;
-        overflow: auto;
-    }
-
-    #map_big.visible {
-        display: block;
-    }
-
-    #worldmap {
-        max-width: 1100px;
-        margin: 0 auto;
-        background: #171b27;
-        border-radius: 6px;
-        box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
-    }
-
-    #worldmap_header, #worldmap_footer {
-        padding: 10px 12px;
-        background: rgba(255,255,255,0.04);
-        border-radius: 4px;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    #worldmap_body {
-        padding: 10px;
-        background: rgba(0, 0, 0, 0.12);
-        border-radius: 4px;
-        min-height: 300px;
-    }
-
-    #worldmap_image {
-        width: 100%;
-        min-height: 250px;
-        overflow-x: auto;
-        overflow-y: auto;
-        background: url('/graphic/map/empty.png') center center / cover no-repeat;
-        display: flex;
-        justify-content: center;
-    }
-
-    .worldmap-preview {
-        display: grid;
-        grid-gap: 1px;
-        background: rgba(255,255,255,0.08);
-        padding: 8px;
-    }
-
-    .worldmap-cell {
-        width: 14px;
-        height: 14px;
-        background: rgba(255,255,255,0.05);
-        border-radius: 2px;
-        cursor: pointer;
-    }
-
-    .worldmap-cell.worldmap-barb { background: rgba(150,150,150,0.8); }
-    .worldmap-cell.worldmap-owned { background: rgba(240,200,0,0.8); }
-    .worldmap-cell.worldmap-center { box-shadow: 0 0 0 1px #fff inset; }
-
-    #worldmap_footer table {
-        width: 100%;
-        font-size: 0.88rem;
-        color: #f8f0b6;
-    }
-
-    #worldmap_header .close a {
-        color: #fff;
-        text-decoration: none;
-        font-size: 0.9rem;
-    }
-
-    #worldmap_body {
-        padding: 10px;
-        background: rgba(0, 0, 0, 0.12);
-        border-radius: 4px;
-        min-height: 300px;
-    }
-
-    #worldmap_image {
-        width: 100%;
-        min-height: 250px;
-        overflow-x: auto;
-        overflow-y: auto;
-        background: url('/graphic/map/empty.png') center center / cover no-repeat;
-    }
-
-    #worldmap_footer table {
-        width: 100%;
-        font-size: 0.88rem;
-        color: #f8f0b6;
-    }
-
-    #worldmap_footer th,
-    #worldmap_footer td {
-        padding: 4px 6px;
-        text-align: left;
-    }
-
     .map_navigation {
         width: 65px;
         padding: 4px;
@@ -217,185 +102,20 @@
     #grid td.tribe { background: rgba(0,0,244,0.45); }
     #grid td.enemy { background: rgba(244,0,0,0.35); }
     #grid td.barbarian { background: rgba(150,150,150,0.55); }
-
-    .map_legend .map_legend {
-        display: inline-flex;
-        align-items: center;
-        margin-right: 1rem;
-        margin-bottom: 0.5rem;
-        color: #f8f0b6;
-    }
-
-    .map_legend .map_legend div {
-        width: 16px;
-        height: 16px;
-        border: 1px solid rgba(255,255,255,0.12);
-        margin-right: 6px;
-        border-radius: 2px;
-    }
-
-    #map_config table {
-        width: 100%;
-    }
-
-    .small { color: #ddd; }
 </style>
 <div class="row">
     <div class="col-lg-9">
-        <div style="margin-bottom:10px"><button id="refresh_map" class="btn btn-gold btn-sm">Odśwież mapę</button></div>
-
-        <div id="map_big">
-            <div id="worldmap">
-                <form name="worldmap" action="" method="post">
-                    <div id="worldmap_header">
-                        <div class="close popup_menu">
-                            <a href="javascript:void(0);" onclick="Worldmap.toggle(); return false;">Zamknąć</a>
-                        </div>
-                        <div>
-                            <input type="hidden" name="min_x" value="">
-                            <input type="hidden" name="min_y" value="">
-                        </div>
-                    </div>
-
-                    <div id="worldmap_body">
-                        <div id="worldmap_image">
-                            <div style="padding: 40px; text-align: center; color: #f8f0b6;">Mapa świata</div>
-                        </div>
-                    </div>
-
-                    <div id="worldmap_footer">
-                        <table>
-                            <tr>
-                                <th>Wioski</th>
-                                <th>Barbarzyńcy</th>
-                                <th>%</th>
-                                <th>Własne plemię</th>
-                                <th>%</th>
-                                <th>Własne</th>
-                                <th>%</th>
-                            </tr>
-                            <tr>
-                                <td id="stat-villages">0</td>
-                                <td id="stat-barbarians">0</td>
-                                <td id="stat-barb-percent">0.00</td>
-                                <td id="stat-tribe">0</td>
-                                <td id="stat-tribe-percent">0.00</td>
-                                <td id="stat-own">0</td>
-                                <td id="stat-own-percent">0.00</td>
-                            </tr>
-                        </table>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <div class="containerBorder narrow" id="map_whole">
-            <table cellspacing="0" cellpadding="0" class="map_container" style="border-spacing: 0; width: 100%;">
-                <tr>
-                    <td></td>
-                    <td align="center" onclick="TWMap.scrollBlock(0, -1); return false;" class="map_navigation">
-                        <img src="/graphic/map/map_n.png" alt="N" />
-                    </td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td align="center" onclick="TWMap.scrollBlock(-1, 0); return false;" class="map_navigation">
-                        <img src="/graphic/map/map_w.png" alt="W" />
-                    </td>
-                    <td style="padding: 0; position: relative;">
-                        <div id="map_wrap">
-                            <div id="map_coord_y_wrap"><div id="map_coord_y"></div></div>
-                            <div id="map_image">
-                                <div id="map_main">
-                                    <table id="grid"></table>
-                                </div>
-                            </div>
-                            <div id="map_coord_x_wrap"><div id="map_coord_x"></div></div>
-                        </div>
-                    </td>
-                    <td align="center" onclick="TWMap.scrollBlock(1, 0); return false;" class="map_navigation">
-                        <img src="/graphic/map/map_e.png" alt="E" />
-                    </td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td align="center" onclick="TWMap.scrollBlock(0, 1); return false;" class="map_navigation">
-                        <img src="/graphic/map/map_s.png" alt="S" />
-                    </td>
-                    <td></td>
-                </tr>
-            </table>
-        </div>
-
-        <div id="map_legend" class="containerBorder map-legend-container">
-            <table>
-                <tr class="nowrap" data-category="standard">
-                    <td class="small" valign="top">Standard:</td>
-                    <td>
-                        <div class="map_legend" data-id="current" data-active="1"><div style="background-color:rgb(255,255,255)"></div> <span>Twoja aktualna wioska</span></div>
-                        <div class="map_legend" data-id="own" data-active="0"><div style="background-color:rgb(240,200,0)"></div> <span>Własne wioski</span></div>
-                        <div class="map_legend" data-id="buddy" data-active="0"><div style="background-color:rgb(69,255,146)"></div> <span>Przyjaciele</span></div>
-                        <div class="map_legend" data-id="ally" data-active="0"><div style="background-color:rgb(0,0,244)"></div> <span>Własne plemię</span></div>
-                        <div class="map_legend" data-id="barbarian" data-active="1"><div style="background-color:rgb(150,150,150)"></div> <span>Barbarzyńskie</span></div>
-                        <div class="map_legend" data-id="other" data-active="1"><div style="background-color:rgb(130,60,10)"></div> <span>Inne</span></div>
-                    </td>
-                </tr>
-            </table>
-        </div>
-
-        <div id="map_config">
-            <div style="margin-top:10px;margin-bottom:10px;">
-                <a href="javascript:void(0);" onclick="Worldmap.toggle()">» Pokaż mapę świata</a><br>
-            </div>
-            <table id="map_search" class="target-select vis" data-on-choice="TWMap.onSearchChoice" style="width:100%;">
-                <tr><th>Szukaj</th></tr>
-                <tr>
-                    <td>
-                        <div class="target-types">
-                            <label><input type="radio" name="target_type" value="player_name" checked> Nazwa gracza</label>
-                            <label><input type="radio" name="target_type" value="village_name"> Nazwa wioski</label>
-                        </div>
-                        <div class="target-input float_left">
-                            <input type="text" name="input" class="target-input-field" placeholder="Wprowadź nick gracza" autocomplete="off" style="width:100%;" />
-                        </div>
-                    </td>
-                </tr>
-            </table>
-            <br>
-            <table class="vis map-relics-panel" style="width:100%;">
-                <tr><th colspan="3">Relikty</th></tr>
-                <tr><td colspan="3" class="map-relics-content"><em>Brak reliktów</em></td></tr>
-            </table>
-            <br>
-            <table class="vis" style="border-spacing:0px;border-collapse:collapse; width:100%;">
-                <tr><th colspan="3">Opcje wyświetlania</th></tr>
-                <tr>
-                    <td><input type="checkbox" id="non_attackable_hide" checked></td>
-                    <td colspan="2"><label for="non_attackable_hide">Ukryj wioski niemożliwe do zaatakowania</label></td>
-                </tr>
-                <tr>
-                    <td><input type="checkbox" id="show_watchtower"></td>
-                    <td colspan="2"><label for="show_watchtower">Pokaż zasięg wieży strażniczej</label></td>
-                </tr>
-            </table>
-            <br>
-            <div>
-                <h5 style="margin:0; cursor:pointer;">Ustawienia popup</h5>
+            <div id="map_wrap">
+                <div id="map_coord_y_wrap"><div id="map_coord_y"></div></div>
+                <div id="map_image">
+                    <div id="map_main">
+                        <table id="grid"></table>
+                    </div>
+                </div>
+                <div id="map_coord_x_wrap"><div id="map_coord_x"></div></div>
             </div>
         </div>
-        <br>
-        <form action="" method="post">
-            <table class="vis" width="100%" style="border-spacing:0px;border-collapse:collapse;">
-                <tr><th colspan="3">Scentruj mapę</th></tr>
-                <tr>
-                    <td class="nowrap">
-                                x:&nbsp;<input type="text" name="x" id="mapx" class="centercoord" value="{{ map_center_x if map_center_x is not none else (data.villages[ data.villages.keys()|list|first ].location[0] if data.villages else '') }}" style="width: 40px">
-                        y:&nbsp;<input type="text" name="y" id="mapy" class="centercoord" value="{{ map_center_y if map_center_y is not none else (data.villages[ data.villages.keys()|list|first ].location[1] if data.villages else '') }}" style="width: 40px">
-                    </td>
-                    <td><input class="btn btn-sm float-right" type="button" onclick="return focusSubmit();" value="Centrum"></td>
-                </tr>
-            </table>
-        </form>
     </div>
 
     <div class="col-lg-3">
@@ -415,53 +135,6 @@
     var map_data = {{map | safe}};
     var grid = document.getElementById('grid');
 
-    var Worldmap = {
-        init: function() {
-            this.render();
-        },
-        toggle: function() {
-            $('#map_big').toggleClass('visible');
-            if ($('#map_big').hasClass('visible')) {
-                this.render();
-            }
-        },
-        render: function() {
-            var body = $('#worldmap_image');
-            body.empty();
-            if (!hasMapContent(map_data)) {
-                body.append('<div style="padding: 40px; text-align: center; color: #f8f0b6;">Brak danych mapy</div>');
-                return;
-            }
-            var sizeX = map_data.max_x - map_data.min_x + 1;
-            var sizeY = map_data.max_y - map_data.min_y + 1;
-            var preview = $('<div class="worldmap-preview"></div>');
-            preview.css('grid-template-columns', 'repeat(' + sizeX + ', 14px)');
-            for (var rowIndex = 0; rowIndex < sizeY; rowIndex++) {
-                for (var colIndex = 0; colIndex < sizeX; colIndex++) {
-                    var x = map_data.min_x + colIndex;
-                    var y = map_data.min_y + rowIndex;
-                    var tile = $('<div class="worldmap-cell" data-x="' + x + '" data-y="' + y + '"></div>');
-                    var row = map_data.grid[colIndex];
-                    var village = row && row[rowIndex] ? row[rowIndex] : null;
-                    if (village) {
-                        tile.addClass(village.owner !== "0" ? 'worldmap-owned' : 'worldmap-barb');
-                    }
-                    if (x === map_data.center_x && y === map_data.center_y) {
-                        tile.addClass('worldmap-center');
-                    }
-                    tile.attr('title', x + ':' + y);
-                    tile.on('click', function() {
-                        var targetX = parseInt($(this).data('x'), 10);
-                        var targetY = parseInt($(this).data('y'), 10);
-                        TWMap.focusUserSpecified(targetX, targetY);
-                    });
-                    preview.append(tile);
-                }
-            }
-            body.append(preview);
-        }
-    };
-
     var TWMap = {
         scrollBlock: function(dx, dy) {
             var x = map_data.center_x !== null ? map_data.center_x : Math.floor((map_data.min_x + map_data.max_x) / 2);
@@ -476,27 +149,22 @@
                 return;
             }
             window.location.href = '/map?x=' + x + '&y=' + y;
-        },
-        goFullscreen: function() {
-            alert('Pełny ekran nie jest dostępny w tej wersji.');
-        },
-        non_attackable_hide: { toggle: function() {} },
-        watchtower: { toggle: function() {} }
+        }
     };
 
     function generateGrid(x, y, data) {
         grid.innerHTML = "";
-        grid.style.width = (y * 53) + 'px';
+        grid.style.width = (x * 53) + 'px';
         grid.style.tableLayout = 'fixed';
-        for (var i = 0; i < x; i++) {
-            var row = grid.insertRow(i);
-            for (var j = 0; j < y; j++) {
-                var cell = row.insertCell(j);
+        for (var rowIndex = 0; rowIndex < y; rowIndex++) {
+            var row = grid.insertRow(rowIndex);
+            for (var colIndex = 0; colIndex < x; colIndex++) {
+                var cell = row.insertCell(colIndex);
                 cell.style.width = '53px';
                 cell.style.height = '38px';
 
-                if (i in data.grid && j in data.grid[i] && data.grid[i][j]) {
-                    var village = data.grid[i][j];
+                if (colIndex in data.grid && rowIndex in data.grid[colIndex] && data.grid[colIndex][rowIndex]) {
+                    var village = data.grid[colIndex][rowIndex];
                     cell.onclick = function() { clickCell(this); };
                     cell.onmouseover = function() { clickCell(this); };
                     if (village.owner != "0") {
@@ -565,92 +233,56 @@
         }
     }
 
-    function updateStatistics(data) {
-        var total = 0, barbarians = 0, tribe = 0, own = 0;
-        if (!data || !data.grid) return;
-        for (var x in data.grid) {
-            if (!data.grid.hasOwnProperty(x)) continue;
-            for (var y in data.grid[x]) {
-                if (!data.grid[x].hasOwnProperty(y)) continue;
-                var village = data.grid[x][y];
-                if (!village) continue;
-                total++;
-                if (village.owner == "0") {
-                    barbarians++;
-                } else if (data.extra && village.owner == data.extra.owner) {
-                    own++;
-                } else if (data.extra && data.extra.tribe != "0" && village.tribe == data.extra.tribe) {
-                    tribe++;
-                }
-            }
-        }
-        var ownPercent = total ? ((own / total) * 100).toFixed(2) : '0.00';
-        var tribePercent = total ? ((tribe / total) * 100).toFixed(2) : '0.00';
-        var barbPercent = total ? ((barbarians / total) * 100).toFixed(2) : '0.00';
-        $('#stat-villages').text(total);
-        $('#stat-barbarians').text(barbarians);
-        $('#stat-barb-percent').text(barbPercent);
-        $('#stat-tribe').text(tribe);
-        $('#stat-tribe-percent').text(tribePercent);
-        $('#stat-own').text(own);
-        $('#stat-own-percent').text(ownPercent);
-    }
-
-    function focusSubmit() {
-        var x = parseInt($('#mapx').val(), 10);
-        var y = parseInt($('#mapy').val(), 10);
-        if (isNaN(x) || isNaN(y)) {
-            alert('Podaj poprawne współrzędne x i y.');
-            return false;
-        }
-        window.location.href = '/map?x=' + x + '&y=' + y;
-        return false;
-    }
-
     function initializeMap() {
         if (!hasMapContent(map_data)) {
             $('#grid').html('<tr><td>Brak danych mapy</td></tr>');
             return;
         }
 
-        generateGrid(Object.keys(map_data.grid).length, Object.keys(map_data.grid).length, map_data);
+        var xCount = Object.keys(map_data.grid).length;
+        var yCount = 0;
+        if (xCount > 0) {
+            var firstColumn = map_data.grid[Object.keys(map_data.grid)[0]];
+            if (firstColumn) {
+                yCount = Object.keys(firstColumn).length;
+            }
+        }
+
+        generateGrid(xCount, yCount, map_data);
         fillAxisLabels(map_data);
-        updateStatistics(map_data);
-        $('#mapx').val(map_data.center_x !== null ? map_data.center_x : '');
-        $('#mapy').val(map_data.center_y !== null ? map_data.center_y : '');
         $('input[name=min_x]').val(map_data.min_x || '0');
         $('input[name=min_y]').val(map_data.min_y || '0');
     }
 
-    $('#mapx, #mapy').on('keydown', function(e) {
-        if (e.key === 'Enter') {
-            focusSubmit();
-            return false;
+    $(document).on('keydown', function(e) {
+        switch (e.key) {
+            case 'ArrowLeft':
+            case 'a':
+            case 'A':
+                TWMap.scrollBlock(-1, 0);
+                break;
+            case 'ArrowRight':
+            case 'd':
+            case 'D':
+                TWMap.scrollBlock(1, 0);
+                break;
+            case 'ArrowUp':
+            case 'w':
+            case 'W':
+                TWMap.scrollBlock(0, -1);
+                break;
+            case 'ArrowDown':
+            case 's':
+            case 'S':
+                TWMap.scrollBlock(0, 1);
+                break;
+            default:
+                return;
         }
+        e.preventDefault();
     });
 
-    $('#refresh_map').on('click', function() {
-        $(this).prop('disabled', true).text('Odświeżanie...');
-        $.get('/map/refresh').done(function(res){
-            location.reload();
-        }).fail(function(err){
-            alert('Błąd odświeżania mapy: ' + (err.responseJSON && err.responseJSON.error ? err.responseJSON.error : 'nieznany'));
-            $('#refresh_map').prop('disabled', false).text('Odśwież mapę');
-        });
-    });
-
-    function autoRefreshMap() {
-        if (!hasMapContent(map_data)) {
-            $.get('/map/refresh').done(function(res){
-                if (res && res.status === 'ok' && res.refreshed && res.refreshed.length > 0) {
-                    location.reload();
-                }
-            });
-        }
-    }
-
-    setInterval(autoRefreshMap, 5000);
-    $(function() { initializeMap(); Worldmap.init(); });
+    $(function() { initializeMap(); });
 </script>
 {% endblock %}
  
