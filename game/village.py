@@ -482,9 +482,15 @@ class Village:
 
         self.attack.farm_assistant_rules = parsed_rules
         self.attack.max_farms = _get_assistant("max_farms", 25)
-        if self.current_unit_entry:
+        if self.attack.farm_assistant:
+            self.attack.template = None
+            self.logger.debug(
+                "Farm assistant enabled for village %s, local troop templates will be ignored", self.village_id
+            )
+        elif self.current_unit_entry:
             self.attack.template = self.current_unit_entry["farm"]
         self.logger.debug("Farm template for village %s: %s", self.village_id, getattr(self.attack, 'template', None))
+        self.logger.debug("Farm assistant templates for village %s: %s", self.village_id, getattr(self.attack, 'farm_assistant_templates', None))
 
     def run_farming(self):
         """
@@ -519,24 +525,6 @@ class Village:
             if sent >= self.attack.max_farms:
                 break
 
-            # determine which template to use (template can be dict or list of dicts)
-            chosen_template = None
-            if isinstance(self.attack.template, dict):
-                chosen_template = self.attack.template
-            elif isinstance(self.attack.template, list):
-                # pick first template that has enough troops
-                for tmpl in self.attack.template:
-                    missing = self.attack.enough_in_village(tmpl)
-                    if not missing:
-                        chosen_template = tmpl
-                        break
-                if not chosen_template:
-                    self.logger.debug("Not enough troops for any assistant template")
-                    break
-            else:
-                self.logger.debug("Unknown farm template type: %s", type(self.attack.template))
-                continue
-
             # show candidate link before safety check
             try:
                 link = self.attack.get_farm_assistant_link(vid)
@@ -544,18 +532,14 @@ class Village:
             except Exception:
                 link = None
 
+            if not link:
+                self.logger.debug("No farm assistant link available for %s", vid)
+                continue
+
             cached = self.attack.can_attack(vid=vid, clear=False)
             if cached:
-                res = self.attack.attack_with_assistant(vid, troops=chosen_template)
+                res = self.attack.attack_with_assistant(vid)
                 if res:
-                    # decrement local troop counts
-                    for u in chosen_template:
-                        if u in self.units.troops:
-                            try:
-                                self.units.troops[u] = str(int(self.units.troops[u]) - chosen_template[u])
-                            except Exception:
-                                pass
-                    # record attack
                     hp = cached["high_profile"] if type(cached) == dict and "high_profile" in cached else False
                     lp = cached["low_profile"] if type(cached) == dict and "low_profile" in cached else False
                     self.attack.attacked(vid, scout=False, safe=True, high_profile=hp, low_profile=lp)

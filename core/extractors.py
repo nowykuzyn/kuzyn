@@ -373,6 +373,20 @@ class Extractor:
         return targets
 
     @staticmethod
+    def farm_assistant_templates(res):
+        """
+        Extracts farm assistant templates from the farm assistant page JavaScript.
+        """
+        if type(res) != str:
+            res = res.text
+        templates = {}
+        for match in re.findall(r"Accountmanager\.farm\.templates\['t_(\d+)'\]\s*=\s*\{\s*\};", res):
+            templates[match] = {}
+        for tmpl_id, unit, value in re.findall(r"Accountmanager\.farm\.templates\['t_(\d+)'\]\['([^']+)'\]\s*=\s*(\d+);", res):
+            templates.setdefault(tmpl_id, {})[unit] = int(value)
+        return templates
+
+    @staticmethod
     def attack_duration(res):
         """
         Detects the duration of an attack

@@ -35,6 +35,7 @@ class AttackManager:
     farm_assistant = False
     farm_assistant_targets = {}
     farm_assistant_targets_loaded = False
+    farm_assistant_templates = {}
     farm_assistant_rules = []
 
     # Konfiguruje liczbę zwiadowców używanych do wykrycia, czy wsie są bezpieczne do farmy
@@ -451,6 +452,7 @@ class AttackManager:
         if self.farm_assistant_targets_loaded:
             return
         self.farm_assistant_targets = {}
+        self.farm_assistant_templates = {}
         url = f"game.php?village={self.village_id}&screen=am_farm"
         page = self.wrapper.get_url(url)
         if not page:
@@ -471,6 +473,7 @@ class AttackManager:
             self.send_units_link = None
 
         self.farm_assistant_targets.update(Extractor.farm_assistant_targets(page))
+        self.farm_assistant_templates.update(Extractor.farm_assistant_templates(page))
         # if no targets found, dump the page for inspection
         if not self.farm_assistant_targets:
             try:
@@ -481,6 +484,7 @@ class AttackManager:
         # debug: log how many targets were found on first page
         try:
             self.logger.debug("Loaded %d farm assistant targets from %s", len(self.farm_assistant_targets), url)
+            self.logger.debug("Loaded %d farm assistant templates from %s", len(self.farm_assistant_templates), url)
         except Exception:
             pass
         for pagination_url in Extractor.farm_assistant_pagination(page):
@@ -503,6 +507,15 @@ class AttackManager:
             )
         else:
             self.logger.info("No farm assistant targets found for village %s on am_farm", self.village_id)
+        template_keys = list(self.farm_assistant_templates.keys())
+        if template_keys:
+            self.logger.debug(
+                "Farm assistant templates loaded for village %s: %d (%s%s)",
+                self.village_id,
+                len(template_keys),
+                ", ".join(template_keys[:10]),
+                "..." if len(template_keys) > 10 else "",
+            )
 
     def get_farm_assistant_link(self, vid):
         self.ensure_farm_assistant_targets()
@@ -752,20 +765,31 @@ class AttackManager:
             return False
 
         button, link = res
+        target = self.farm_assistant_targets.get(str(vid)) if hasattr(self, 'farm_assistant_targets') else None
+        buttons = []
         if not (getattr(self, 'farm_assistant_rules', None) or []):
-            target = self.farm_assistant_targets.get(str(vid)) if hasattr(self, 'farm_assistant_targets') else None
-            buttons = []
             if isinstance(target, dict):
                 buttons = [b for b in ['A', 'B', 'C'] if b in target.get('links', {}) and not target['links'][b].get('disabled')]
             else:
                 buttons = [button]
-            for btn in buttons:
-                link = target['links'][btn]
-                self.logger.debug("Trying farm assistant button %s for %s", btn, vid)
-                if _attempt_link(btn, link):
-                    return True
         else:
-            if _attempt_link(button, link):
+            buttons = [button]
+
+        for btn in buttons:
+            link = target['links'][btn] if isinstance(target, dict) and target.get('links') else link
+            self.logger.debug("Trying farm assistant button %s for %s", btn, vid)
+            if _attempt_link(btn, link):
+                tpl = link.get('template') if isinstance(link, dict) else None
+                if tpl and tpl in self.farm_assistant_templates and self.troopmanager:
+                    template_units = self.farm_assistant_templates.get(tpl, {})
+                    for u, amount in template_units.items():
+                        if u in self.troopmanager.troops:
+                            try:
+                                self.troopmanager.troops[u] = str(
+                                    int(self.troopmanager.troops[u]) - int(amount)
+                                )
+                            except Exception:
+                                pass
                 return True
 
         if self.farm_assistant:
