@@ -44,6 +44,7 @@ help_file = {
     'farm_assistant.farm_assistant_wall_threshold': 'Jeśli AUTO, użyj A dla celu o muru >= tej wartości, w przeciwnym razie B',
     'farm_assistant.farm_assistant_min_wall': 'Minimalny poziom muru celu do farm assistant',
     'farm_assistant.farm_assistant_max_wall': 'Maksymalny poziom muru celu do farm assistant',
+    'farm_assistant.farm_assistant_rules': 'Lista reguł JSON określająca, która ikona (A/B/C) ma zostać użyta na podstawie warunków (min/max wall, min/max distance, min/max last_attack_seconds). Przykład: [{"button":"A","min_wall":5},{"button":"B","max_distance":10}]',
     'market': 'Automatyczne zarządzanie handlem na targu',
     'market.auto_trade': 'Włącz zautomatyzowany handel',
     'market.max_trade_duration': 'Maksymalny czas trwania handlu (godziny)',

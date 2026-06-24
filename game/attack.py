@@ -39,6 +39,7 @@ class AttackManager:
     farm_max_wall = 1000
     farm_assistant_targets = {}
     farm_assistant_targets_loaded = False
+    farm_assistant_rules = []
 
     # Konfiguruje liczbę zwiadowców używanych do wykrycia, czy wsie są bezpieczne do farmy
     scout_farm_amount = 5
@@ -506,6 +507,63 @@ class AttackManager:
         wall = target.get("wall", 0)
         if wall < self.farm_min_wall or wall > self.farm_max_wall:
             return None
+        # Evaluate conditional rules first (if any)
+        try:
+            rules = getattr(self, 'farm_assistant_rules', []) or []
+            for rule in rules:
+                if not isinstance(rule, dict):
+                    continue
+                # rule keys: button, min_wall, max_wall, min_distance, max_distance, min_last_attack, max_last_attack
+                match = True
+                # wall checks
+                if 'min_wall' in rule and wall < int(rule.get('min_wall', 0)):
+                    match = False
+                if 'max_wall' in rule and wall > int(rule.get('max_wall', 0)):
+                    match = False
+                # distance checks (requires map with coordinates)
+                if ('min_distance' in rule or 'max_distance' in rule) and getattr(self, 'map', None):
+                    try:
+                        if vid in getattr(self.map, 'map_pos', {}):
+                            coords = self.map.map_pos[vid]
+                            dist = self.map.get_dist(coords)
+                        else:
+                            # no map coords available, cannot match distance
+                            match = False
+                            dist = None
+                    except Exception:
+                        match = False
+                        dist = None
+                    if match and 'min_distance' in rule and dist is not None and dist < float(rule.get('min_distance')):
+                        match = False
+                    if match and 'max_distance' in rule and dist is not None and dist > float(rule.get('max_distance')):
+                        match = False
+                # last attack checks (uses AttackCache)
+                if 'min_last_attack' in rule or 'max_last_attack' in rule:
+                    try:
+                        cache_entry = AttackCache.get_cache(vid)
+                        last = cache_entry.get('last_attack', 0) if cache_entry else 0
+                        import time as _time
+                        since = int(_time.time()) - int(last) if last else None
+                    except Exception:
+                        since = None
+                    if since is None:
+                        match = False
+                    else:
+                        if 'min_last_attack' in rule and since < int(rule.get('min_last_attack', 0)):
+                            match = False
+                        if 'max_last_attack' in rule and since > int(rule.get('max_last_attack', 0)):
+                            match = False
+
+                if match and 'button' in rule:
+                    desired = str(rule.get('button')).upper()
+                    if desired == 'AUTO':
+                        desired = 'A' if wall >= self.farm_assistant_auto_wall_threshold else 'B'
+                    if desired in target.get('links', {}):
+                        self.logger.debug("Rule matched for %s -> using button %s (%s)", vid, desired, rule)
+                        return desired, target['links'][desired]
+        except Exception:
+            pass
+
         button = self.farm_assistant_button.upper()
         if button == "AUTO":
             button = "A" if wall >= self.farm_assistant_auto_wall_threshold else "B"

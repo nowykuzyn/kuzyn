@@ -66,6 +66,16 @@ def pre_process_string(key, value, village_id=None):
         output += '</select>'
         return output
 
+    if key == 'farm_assistant.farm_assistant_rules':
+        # Provide a JSON textarea for defining conditional rules
+        try:
+            pretty = json.dumps(value, indent=2, ensure_ascii=False)
+        except Exception:
+            pretty = str(value)
+        if village_id:
+            return '<textarea class="form-control" rows="6" data-village-id="%s" data-type="text" data-type-option="%s">%s</textarea>' % (village_id, key, pretty)
+        return '<textarea class="form-control" rows="6" data-type="text" data-type-option="%s">%s</textarea>' % (key, pretty)
+
     if village_id:
         return '<input type="text" class="form-control" data-village-id="%s" data-type="text" value="%s" data-type-option="%s" />' % (
         village_id, value, key)

@@ -455,6 +455,16 @@ class Village:
         self.attack.farm_assistant_auto_wall_threshold = _get_assistant("farm_assistant_wall_threshold", 1)
         self.attack.farm_min_wall = _get_assistant("farm_assistant_min_wall", 0)
         self.attack.farm_max_wall = _get_assistant("farm_assistant_max_wall", 1000)
+        # load optional conditional rules for selecting assistant icon/button
+        raw_rules = _get_assistant("farm_assistant_rules", [])
+        try:
+            if isinstance(raw_rules, str):
+                parsed_rules = json.loads(raw_rules)
+            else:
+                parsed_rules = raw_rules or []
+        except Exception:
+            parsed_rules = []
+        self.attack.farm_assistant_rules = parsed_rules
         self.attack.max_farms = _get_assistant("max_farms", 25)
         if self.current_unit_entry:
             self.attack.template = self.current_unit_entry["farm"]
