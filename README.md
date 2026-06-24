@@ -1,5 +1,4 @@
-# Bot Tribal Wars (TWB)
-## Otwarty bot do gry Tribal Wars
+nowy kuzyn póki co nie działa jak trzeba
 
 ## Powiadomienie o aktualizacji 1.8
 Jeśli masz problemy ze startem bota, być może będziesz musiał zaktualizować zależności, uruchamiając następującą komendę w folderze bota:
