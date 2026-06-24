@@ -213,13 +213,22 @@ function formatLogLine(line, kind){
     return html;
 }
 
+function updateConsole(selector, html){
+    var el = $(selector)[0];
+    if(!el) return;
+    var atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 5;
+    el.innerHTML = html;
+    if(atBottom){
+        el.scrollTop = el.scrollHeight;
+    }
+}
+
 function refreshBotLogs(){
     $.getJSON('/logs?kind=bot&n=200', function(data){
         if(!data || !data.logs) return;
         var html = '';
         data.logs.forEach(function(l){ html += formatLogLine(l,'bot'); });
-        $('#bot-console').html(html);
-        var el = $('#bot-console')[0]; if(el) el.scrollTop = el.scrollHeight;
+        updateConsole('#bot-console', html);
     });
 }
 
@@ -228,8 +237,7 @@ function refreshHttpLogs(){
         if(!data || !data.logs) return;
         var html = '';
         data.logs.forEach(function(l){ html += formatLogLine(l,'http'); });
-        $('#http-console').html(html);
-        var el = $('#http-console')[0]; if(el) el.scrollTop = el.scrollHeight;
+        updateConsole('#http-console', html);
     });
 }
 
