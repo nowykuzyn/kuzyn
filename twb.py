@@ -43,7 +43,7 @@ from core.exceptions import UnsupportedPythonVersion
 from core.extractors import Extractor
 
 coloredlogs.install(
-    level=logging.DEBUG if "-q" not in sys.argv else logging.INFO,
+    level=logging.INFO if "-q" not in sys.argv else logging.WARNING,
     fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 

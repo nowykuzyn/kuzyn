@@ -665,67 +665,115 @@ class AttackManager:
         self.logger.debug("No enabled farm assistant button available for %s", vid)
         return None
 
+    def _save_farm_assistant_debug(self, vid, target, report):
+        """Save a farm assistant debug report for later analysis."""
+        filename = f"cache/debug/farm_assistant_debug_{self.village_id}_{vid}_{int(time.time())}.json"
+        payload = {
+            'village': self.village_id,
+            'target': vid,
+            'target_meta': target.get('meta', {}) if isinstance(target, dict) else None,
+            'target_links': target.get('links', {}) if isinstance(target, dict) else None,
+            'report': report,
+            'timestamp': int(time.time()),
+        }
+        try:
+            FileManager.save_json_file(payload, filename)
+            self.logger.debug("Zapisano farm assistant debug do %s", filename)
+        except Exception as e:
+            self.logger.warning("Nie udało się zapisać debugu farm assistant dla %s: %s", vid, e)
+
+    def _debug_failed_farm_assistant_send(self, vid, target, buttons):
+        report = []
+        for btn in buttons:
+            link = target['links'][btn] if isinstance(target, dict) and target.get('links') else None
+            attempts = []
+            success = self._attempt_link(btn, link, vid, attempts)
+            report.append({'button': btn, 'success': success, 'attempts': attempts})
+            if success:
+                self.logger.info("Farm assistant debug retry dla %s powiodła się przy użyciu %s", vid, btn)
+                self._save_farm_assistant_debug(vid, target, report)
+                return True
+        self.logger.warning("Farm assistant debug dla %s nie powiódł się. Zapisuję raport.", vid)
+        self._save_farm_assistant_debug(vid, target, report)
+        return False
+
     def attack_with_assistant(self, vid, troops=None):
         res = self.get_farm_assistant_link(vid)
         if not res:
             self.logger.debug("No farm assistant link for %s", vid)
             return False
         # Helper that attempts a single farm assistant link
-        def _attempt_link(button, link):
+        def _attempt_link(button, link, target_vid, debug_capture=None):
             href = link.get('href') if isinstance(link, dict) else None
             onclick = link.get('onclick') if isinstance(link, dict) else None
             tpl = link.get('template') if isinstance(link, dict) else None
             if getattr(self, 'send_units_link', None) and tpl:
                 send_url = self.send_units_link
                 payloads = [
-                    {'target': vid, 'template': tpl},
-                    {'target': vid, 'template_id': tpl},
-                    {'id': vid, 'template_id': tpl},
-                    {'village': self.village_id, 'target': vid, 'template_id': tpl},
-                    {'source_village': self.village_id, 'target': vid, 'template_id': tpl},
+                    {'target': target_vid, 'template': tpl},
+                    {'target': target_vid, 'template_id': tpl},
+                    {'id': target_vid, 'template_id': tpl},
+                    {'village': self.village_id, 'target': target_vid, 'template_id': tpl},
+                    {'source_village': self.village_id, 'target': target_vid, 'template_id': tpl},
                 ]
                 for data in payloads:
                     try:
                         resp = self.wrapper.post_url(url=send_url, data=data)
+                        if debug_capture is not None:
+                            entry = {
+                                'method': 'POST',
+                                'url': send_url,
+                                'data': data,
+                                'status_code': getattr(resp, 'status_code', None) if resp else None,
+                                'response_text': (resp.text[:2000] if resp and hasattr(resp, 'text') else None),
+                            }
                         if not resp:
+                            if debug_capture is not None:
+                                entry['error'] = 'no response'
+                                debug_capture.append(entry)
                             continue
                         json_ok = False
                         try:
                             j = resp.json()
-                            if isinstance(j, dict):
-                                if j.get('error'):
-                                    self.logger.debug(
-                                        "Farm assistant AJAX %s for %s payload %s returned error: %s",
-                                        send_url,
-                                        vid,
-                                        data,
-                                        j,
-                                    )
-                                    continue
-                                if 'success' in j and bool(j.get('success')):
-                                    self.logger.debug(
-                                        "Triggered farm assistant AJAX %s for %s with payload %s (json success)",
-                                        send_url,
-                                        vid,
-                                        data,
-                                    )
-                                    return True
-                                if 'data' in j:
-                                    self.logger.debug(
-                                        "Triggered farm assistant AJAX %s for %s with payload %s (json data)",
-                                        send_url,
-                                        vid,
-                                        data,
-                                    )
-                                    return True
-                            json_ok = True
+                            if debug_capture is not None:
+                                entry['json'] = j
                         except Exception:
-                            json_ok = False
+                            j = None
+                            if debug_capture is not None:
+                                entry['json_error'] = True
+                        if debug_capture is not None:
+                            debug_capture.append(entry)
+                        if isinstance(j, dict):
+                            if j.get('error'):
+                                self.logger.debug(
+                                    "Farm assistant AJAX %s for %s payload %s returned error: %s",
+                                    send_url,
+                                    target_vid,
+                                    data,
+                                    j,
+                                )
+                                continue
+                            if 'success' in j and bool(j.get('success')):
+                                self.logger.debug(
+                                    "Triggered farm assistant AJAX %s for %s with payload %s (json success)",
+                                    send_url,
+                                    target_vid,
+                                    data,
+                                )
+                                return True
+                            if 'data' in j:
+                                self.logger.debug(
+                                    "Triggered farm assistant AJAX %s for %s with payload %s (json data)",
+                                    send_url,
+                                    target_vid,
+                                    data,
+                                )
+                                return True
                         if resp.status_code == 200 and not json_ok and 'error' not in (resp.text or '').lower():
                             self.logger.debug(
                                 "Triggered farm assistant AJAX %s for %s with payload %s (text success)",
                                 send_url,
-                                vid,
+                                target_vid,
                                 data,
                             )
                             return True
@@ -733,14 +781,21 @@ class AttackManager:
                             self.logger.debug(
                                 "Farm assistant AJAX %s for %s payload %s returned non-success json: %s",
                                 send_url,
-                                vid,
+                                target_vid,
                                 data,
                                 resp.text,
                             )
                     except Exception as e:
+                        if debug_capture is not None:
+                            debug_capture.append({
+                                'method': 'POST',
+                                'url': send_url,
+                                'data': data,
+                                'error': str(e),
+                            })
                         self.logger.debug(
                             "Farm assistant AJAX request failed for %s with payload %s: %s",
-                            send_url,
+                            target_vid,
                             data,
                             e,
                         )
@@ -750,11 +805,11 @@ class AttackManager:
                 if link.get('href') and 'screen=am_farm' in (link.get('href') or ''):
                     attempts.append(link.get('href'))
                 if link.get('onclick') and re.search(r'sendUnits', link.get('onclick')):
-                    attempts.append(f"game.php?village={self.village_id}&screen=am_farm&farm_icon_{button.lower()}={vid}")
+                    attempts.append(f"game.php?village={self.village_id}&screen=am_farm&farm_icon_{button.lower()}={target_vid}")
                     if tpl:
                         attempts.append(f"game.php?village={self.village_id}&screen=am_farm&template={tpl}")
-                        attempts.append(f"game.php?village={self.village_id}&screen=am_farm&send=1&target={vid}&template={tpl}")
-                    attempts.append(f"game.php?village={self.village_id}&screen=am_farm&farm_village={vid}")
+                        attempts.append(f"game.php?village={self.village_id}&screen=am_farm&send=1&target={target_vid}&template={tpl}")
+                    attempts.append(f"game.php?village={self.village_id}&screen=am_farm&farm_village={target_vid}")
             ajax_headers = dict(self.wrapper.headers)
             ajax_headers.update({
                 'Accept': "application/json, text/javascript, */*; q=0.01",
@@ -765,7 +820,17 @@ class AttackManager:
             for url in attempts:
                 try:
                     resp = self.wrapper.get_url(url, headers=ajax_headers)
+                    if debug_capture is not None:
+                        entry = {
+                            'method': 'GET',
+                            'url': url,
+                            'status_code': getattr(resp, 'status_code', None) if resp else None,
+                            'response_text': (resp.text[:2000] if resp and hasattr(resp, 'text') else None),
+                        }
                     if not resp:
+                        if debug_capture is not None:
+                            entry['error'] = 'no response'
+                            debug_capture.append(entry)
                         continue
                     text = resp.text if hasattr(resp, 'text') else ''
                     ctype = ''
@@ -779,26 +844,40 @@ class AttackManager:
                     if is_json or 'json=1' in url or 'ajaxaction' in url:
                         try:
                             j = resp.json()
-                            if isinstance(j, dict):
-                                if j.get('error'):
-                                    continue
-                                if 'success' in j and bool(j.get('success')):
-                                    self.logger.debug("Triggered farm assistant URL %s for %s (json success)", url, vid)
-                                    return True
-                                if 'data' in j:
-                                    self.logger.debug("Triggered farm assistant URL %s for %s (json data)", url, vid)
-                                    return True
-                            if 'ok' in text.lower() or 'success' in text.lower():
-                                self.logger.debug("Triggered farm assistant URL %s for %s (text ok)", url, vid)
-                                return True
+                            if debug_capture is not None:
+                                entry['json'] = j
                         except Exception:
-                            if 'ok' in text.lower() or 'success' in text.lower():
-                                self.logger.debug("Triggered farm assistant URL %s for %s (text ok fallback)", url, vid)
+                            j = None
+                            if debug_capture is not None:
+                                entry['json_error'] = True
+                        if debug_capture is not None:
+                            debug_capture.append(entry)
+                        if isinstance(j, dict):
+                            if j.get('error'):
+                                self.logger.debug("Farm assistant URL %s for %s returned error %s", url, target_vid, j)
+                                continue
+                            if 'success' in j and bool(j.get('success')):
+                                self.logger.debug("Triggered farm assistant URL %s for %s (json success)", url, target_vid)
                                 return True
+                            if 'data' in j:
+                                self.logger.debug("Triggered farm assistant URL %s for %s (json data)", url, target_vid)
+                                return True
+                        if 'ok' in text.lower() or 'success' in text.lower():
+                            self.logger.debug("Triggered farm assistant URL %s for %s (text ok)", url, target_vid)
+                            return True
                     else:
-                        self.logger.debug("Ignored non-AJAX GET %s for %s (not treated as send)", url, vid)
+                        if debug_capture is not None:
+                            entry['note'] = 'ignored non-AJAX GET'
+                            debug_capture.append(entry)
+                        self.logger.debug("Ignored non-AJAX GET %s for %s (not treated as send)", url, target_vid)
                         continue
-                except Exception:
+                except Exception as e:
+                    if debug_capture is not None:
+                        debug_capture.append({
+                            'method': 'GET',
+                            'url': url,
+                            'error': str(e),
+                        })
                     continue
             return False
 
@@ -813,17 +892,25 @@ class AttackManager:
         else:
             buttons = [button]
 
+        coord_text = None
+        if isinstance(target, dict) and 'meta' in target and isinstance(target['meta'], dict):
+            coords = target['meta'].get('coords')
+            if coords and 'x' in coords and 'y' in coords:
+                coord_text = f"({coords['x']}|{coords['y']})"
+        if not coord_text:
+            coord_text = str(vid)
+
         for btn in buttons:
             link = target['links'][btn] if isinstance(target, dict) and target.get('links') else link
-            meta = target.get('meta', {}) if isinstance(target, dict) else {}
+            self.logger.info("Próba ataku wioski %s przy użyciu %s", coord_text, btn)
             self.logger.debug(
                 "Trying farm assistant button %s for %s, target meta fields: %d %s",
                 btn,
                 vid,
-                len(meta),
-                sorted(meta.keys()) if isinstance(meta, dict) else meta,
+                len(target.get('meta', {}) if isinstance(target, dict) else {}),
+                sorted(target.get('meta', {}).keys()) if isinstance(target, dict) else {},
             )
-            if _attempt_link(btn, link):
+            if _attempt_link(btn, link, vid):
                 tpl = link.get('template') if isinstance(link, dict) else None
                 if tpl and tpl in self.farm_assistant_templates and self.troopmanager:
                     template_units = self.farm_assistant_templates.get(tpl, {})
@@ -836,6 +923,11 @@ class AttackManager:
                             except Exception:
                                 pass
                 return True
+
+        if self.farm_assistant:
+            self.logger.warning("Błąd wysyłki farm assistant dla %s, uruchamiam debug i zapisuję raport", coord_text)
+            self._debug_failed_farm_assistant_send(vid, target, buttons)
+            return False
 
         if self.farm_assistant:
             self.logger.debug("Unable to trigger farm assistant action for %s via am_farm patterns", vid)
