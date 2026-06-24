@@ -35,8 +35,6 @@ class AttackManager:
     farm_assistant = False
     farm_assistant_button = "AUTO"
     farm_assistant_auto_wall_threshold = 1
-    farm_min_wall = 0
-    farm_max_wall = 1000
     farm_assistant_targets = {}
     farm_assistant_targets_loaded = False
     farm_assistant_rules = []
@@ -505,8 +503,6 @@ class AttackManager:
             self.logger.debug("No farm assistant target entry for %s", vid)
             return None
         wall = target.get("wall", 0)
-        if wall < self.farm_min_wall or wall > self.farm_max_wall:
-            return None
         # Evaluate conditional rules first (if any)
         try:
             rules = getattr(self, 'farm_assistant_rules', []) or []

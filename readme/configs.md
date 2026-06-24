@@ -61,9 +61,9 @@ Uwaga: rozmiar partii zawsze będzie maksymalną ilością jednostek w jednej pr
 
 Sekcja `farm_assistant` zastępuje starą konfigurację dotyczącą farmowania i zawiera ustawienia dla automatycznych ataków wykonywanych przez Farm Assistant (widok `&screen=am_farm`).
 
-Najważniejsze ustawienia są opisane w `config.example.json` i obejmują: `enabled`, progi punktów, promień wyszukiwania, czasy oczekiwania między atakami, `max_farms`, `farm_scout_amount`, przycisk asystenta (`farm_assistant_button`), progi murów oraz `auto_send_assistant_attacks`.
+Najważniejsze ustawienia są opisane w `config.example.json` i obejmują: `enabled`, progi punktów, promień wyszukiwania, czasy oczekiwania między atakami, `max_farms`, `farm_scout_amount`, przycisk asystenta (`farm_assistant_button`) oraz szczegółowe reguły A/B/C dla warunku muru.
 
-Uwaga: automatyczne wysyłanie ataków może zwiększyć ryzyko bana — używaj ostrożnie.
+Uwaga: automatyczne ataki za pomocą Farm Assistant mogą zwiększyć ryzyko bana — używaj ostrożnie.
 
 ## Targ
 Funkcja targu automatycznie zarządza zasobami w twojej wiosce. To jest szczególnie miłe, ilekroć builder jest mały na pewny zasób i ma wiele innych.

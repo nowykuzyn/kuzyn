@@ -232,6 +232,8 @@ def pre_process_config():
         config_data = ""
         skip_params = set()
         for parameter in config[section]:
+            if section == 'farm_assistant' and parameter in {'farm_assistant_rules', 'farm_assistant_min_wall', 'farm_assistant_max_wall', 'auto_send_assistant_attacks'}:
+                continue
             if parameter in skip_params:
                 continue
             value = config[section][parameter]
@@ -277,6 +279,8 @@ def pre_process_village_config(village_id):
     skip_params = set()
     for parameter in config:
         if parameter == "additional_farms":
+            continue
+        if parameter in {'farm_assistant_rules', 'farm_assistant_min_wall', 'farm_assistant_max_wall', 'auto_send_assistant_attacks'}:
             continue
         if parameter in skip_params:
             continue

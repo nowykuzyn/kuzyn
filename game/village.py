@@ -444,8 +444,7 @@ class Village:
         self.attack.farm_high_prio_wait = _get_assistant("full_loot_away_time", 1800)
         self.attack.farm_low_prio_wait = _get_assistant("low_loot_away_time", 7200)
         self.attack.scout_farm_amount = _get_assistant("farm_scout_amount", 5)
-        # enable farm assistant per-village when either explicitly enabled
-        # or when auto-send is configured globally for convenience
+        # enable farm assistant per-village when explicitly enabled or via legacy auto_send_assistant_attacks
         self.attack.farm_assistant = False
         if assistant_conf:
             self.attack.farm_assistant = assistant_conf.get("enabled", False) or assistant_conf.get("auto_send_assistant_attacks", False)
@@ -453,8 +452,6 @@ class Village:
 
         self.attack.farm_assistant_button = _get_assistant("farm_assistant_button", "AUTO")
         self.attack.farm_assistant_auto_wall_threshold = _get_assistant("farm_assistant_wall_threshold", 1)
-        self.attack.farm_min_wall = _get_assistant("farm_assistant_min_wall", 0)
-        self.attack.farm_max_wall = _get_assistant("farm_assistant_max_wall", 1000)
         # load optional conditional rules for selecting assistant icon/button
         raw_rules = _get_assistant("farm_assistant_rules", [])
         parsed_rules = []
@@ -495,15 +492,7 @@ class Village:
         """
         Runs the farming logic
         """
-        # Auto-send assistant attacks if configured (check farm_assistant section)
-        assistant_conf = self.config.get("farm_assistant") if isinstance(self.config, dict) else None
-        auto_send = assistant_conf.get("auto_send_assistant_attacks", False) if assistant_conf else False
-        self.logger.debug("Auto-send assistant attacks config (farm_assistant) = %s", auto_send)
-
-        if not auto_send:
-            self.logger.debug("Auto-send assistant attacks disabled in config.")
-            return
-
+        # Farm assistant is enabled when attack.farm_assistant is true
         if not self.attack or not self.attack.farm_assistant:
             self.logger.debug("Farm assistant not enabled for village %s", self.village_id)
             return

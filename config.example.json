@@ -82,9 +82,6 @@
     "farm_scout_amount": 5,
     "farm_assistant_button": "AUTO",
     "farm_assistant_wall_threshold": 1,
-    "farm_assistant_min_wall": 0,
-    "farm_assistant_max_wall": 1000,
-    "farm_assistant_rules": [],
     "farm_assistant_rule_A_field": "none",
     "farm_assistant_rule_A_op": "none",
     "farm_assistant_rule_A_value": 0,
@@ -93,8 +90,7 @@
     "farm_assistant_rule_B_value": 0,
     "farm_assistant_rule_C_field": "none",
     "farm_assistant_rule_C_op": "none",
-    "farm_assistant_rule_C_value": 0,
-    "auto_send_assistant_attacks": false
+    "farm_assistant_rule_C_value": 0
   },
   "market": {
     "auto_trade": true,
