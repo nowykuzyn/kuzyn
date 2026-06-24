@@ -40,7 +40,6 @@ help_file = {
     'farm_assistant.attack_higher_points': 'Jeśli włączone, wsie z wyższymi punktami niż bieżąca będą automatycznie ignorowane',
     'farm_assistant.force_scout_if_available': 'Będzie atakować tylko wsie, które zostały wcześniej zaatakowane lub będzie je automatycznie zwiadowcować',
     'farm_assistant.farm_scout_amount': 'Ustawia liczbę zwiadowców używanych do określenia, czy wieś jest bezpieczna do farmeowania',
-    'farm_assistant.farm_assistant_button': 'Wybierz ikonę farm assistant do użycia: A, B lub C',
     'farm_assistant.farm_assistant_rule_A_field': 'Warunek dla przycisku A: wybierz pole (wall, distance, last_attack) lub none',
     'farm_assistant.farm_assistant_rule_A_op': 'Operator porównania dla reguły A: mniejsza (<), większa (>), mniejsza lub równa (<=), większa lub równa (>=), równa (==) lub none',
     'farm_assistant.farm_assistant_rule_A_value': 'Wartość progowa dla reguły A (liczbowa). Dla last_attack użyj sekund od ostatniego ataku',

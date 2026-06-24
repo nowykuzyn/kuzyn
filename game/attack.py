@@ -33,7 +33,6 @@ class AttackManager:
     farm_maxpoints = 1000
     ignored = []
     farm_assistant = False
-    farm_assistant_button = "A"
     farm_assistant_targets = {}
     farm_assistant_targets_loaded = False
     farm_assistant_rules = []
@@ -595,17 +594,11 @@ class AttackManager:
                 return False
             return bool(link.get('disabled'))
 
-        button = self.farm_assistant_button.upper()
-        chosen = target["links"].get(button)
-        if chosen and not _is_disabled(chosen):
-            self.logger.debug("Using farm assistant link for %s button %s -> %s", vid, button, chosen)
-            return button, chosen
-
-        for fallback in ["A", "B", "C"]:
-            link = target["links"].get(fallback)
+        for option in ["A", "B", "C"]:
+            link = target["links"].get(option)
             if link and not _is_disabled(link):
-                self.logger.debug("Using farm assistant fallback link for %s button %s -> %s", vid, fallback, link)
-                return fallback, link
+                self.logger.debug("Using farm assistant link for %s button %s -> %s", vid, option, link)
+                return option, link
 
         self.logger.debug("No enabled farm assistant button available for %s, chosen %s", vid, button)
         return None
@@ -613,9 +606,7 @@ class AttackManager:
     def attack_with_assistant(self, vid, troops=None):
         res = self.get_farm_assistant_link(vid)
         if not res:
-            self.logger.debug(
-                "No farm assistant link for %s with button %s", vid, self.farm_assistant_button
-            )
+            self.logger.debug("No farm assistant link for %s", vid)
             return False
         # Helper that attempts a single farm assistant link
         def _attempt_link(button, link):

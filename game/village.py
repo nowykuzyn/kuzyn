@@ -450,7 +450,6 @@ class Village:
             self.attack.farm_assistant = assistant_conf.get("enabled", False) or assistant_conf.get("auto_send_assistant_attacks", False)
         self.logger.debug("Farm assistant enabled for village %s = %s", self.village_id, self.attack.farm_assistant)
 
-        self.attack.farm_assistant_button = _get_assistant("farm_assistant_button", "A")
         # load optional conditional rules for selecting assistant icon/button
         raw_rules = _get_assistant("farm_assistant_rules", [])
         parsed_rules = []

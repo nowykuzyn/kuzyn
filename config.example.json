@@ -80,7 +80,6 @@
     "force_scout_if_available": true,
     "forced_peace_times": [],
     "farm_scout_amount": 5,
-    "farm_assistant_button": "A",
     "farm_assistant_rule_A_field": "none",
     "farm_assistant_rule_A_op": "none",
     "farm_assistant_rule_A_value": 0,
