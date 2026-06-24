@@ -492,6 +492,17 @@ class AttackManager:
                 except Exception:
                     pass
         self.farm_assistant_targets_loaded = True
+        target_keys = list(self.farm_assistant_targets.keys())
+        if target_keys:
+            self.logger.info(
+                "Farm assistant targets loaded for village %s: %d (%s%s)",
+                self.village_id,
+                len(target_keys),
+                ", ".join(target_keys[:10]),
+                "..." if len(target_keys) > 10 else "",
+            )
+        else:
+            self.logger.info("No farm assistant targets found for village %s on am_farm", self.village_id)
 
     def get_farm_assistant_link(self, vid):
         self.ensure_farm_assistant_targets()
