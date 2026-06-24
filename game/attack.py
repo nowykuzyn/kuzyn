@@ -33,8 +33,7 @@ class AttackManager:
     farm_maxpoints = 1000
     ignored = []
     farm_assistant = False
-    farm_assistant_button = "AUTO"
-    farm_assistant_auto_wall_threshold = 1
+    farm_assistant_button = "A"
     farm_assistant_targets = {}
     farm_assistant_targets_loaded = False
     farm_assistant_rules = []
@@ -585,8 +584,6 @@ class AttackManager:
 
                 if match and 'button' in rule:
                     desired = str(rule.get('button')).upper()
-                    if desired == 'AUTO':
-                        desired = 'A' if wall >= self.farm_assistant_auto_wall_threshold else 'B'
                     if desired in target.get('links', {}):
                         self.logger.debug("Rule matched for %s -> using button %s (%s)", vid, desired, rule)
                         return desired, target['links'][desired]
@@ -599,9 +596,6 @@ class AttackManager:
             return bool(link.get('disabled'))
 
         button = self.farm_assistant_button.upper()
-        if button == "AUTO":
-            button = "A" if wall >= self.farm_assistant_auto_wall_threshold else "B"
-
         chosen = target["links"].get(button)
         if chosen and not _is_disabled(chosen):
             self.logger.debug("Using farm assistant link for %s button %s -> %s", vid, button, chosen)
@@ -623,123 +617,155 @@ class AttackManager:
                 "No farm assistant link for %s with button %s", vid, self.farm_assistant_button
             )
             return False
-        button, link = res
-        # If the original href points to am_farm or we have an onclick JS handler, try to trigger the action on am_farm
-        href = link.get('href') if isinstance(link, dict) else None
-        onclick = link.get('onclick') if isinstance(link, dict) else None
-
-        # First, try the Accountmanager AJAX endpoint if available (preferred)
-        tpl = None
-        if isinstance(link, dict):
-            tpl = link.get('template')
-        if getattr(self, 'send_units_link', None) and tpl:
-            send_url = self.send_units_link
-            # try several common parameter combinations for the AJAX farm endpoint
-            payloads = [
-                {'target': vid, 'template': tpl},
-                {'target': vid, 'template_id': tpl},
-                {'id': vid, 'template_id': tpl},
-                {'village': self.village_id, 'target': vid, 'template_id': tpl},
-                {'source_village': self.village_id, 'target': vid, 'template_id': tpl},
-            ]
-            for data in payloads:
+        # Helper that attempts a single farm assistant link
+        def _attempt_link(button, link):
+            href = link.get('href') if isinstance(link, dict) else None
+            onclick = link.get('onclick') if isinstance(link, dict) else None
+            tpl = link.get('template') if isinstance(link, dict) else None
+            if getattr(self, 'send_units_link', None) and tpl:
+                send_url = self.send_units_link
+                payloads = [
+                    {'target': vid, 'template': tpl},
+                    {'target': vid, 'template_id': tpl},
+                    {'id': vid, 'template_id': tpl},
+                    {'village': self.village_id, 'target': vid, 'template_id': tpl},
+                    {'source_village': self.village_id, 'target': vid, 'template_id': tpl},
+                ]
+                for data in payloads:
+                    try:
+                        resp = self.wrapper.post_url(url=send_url, data=data)
+                        if not resp:
+                            continue
+                        json_ok = False
+                        try:
+                            j = resp.json()
+                            if isinstance(j, dict):
+                                if j.get('error'):
+                                    self.logger.debug(
+                                        "Farm assistant AJAX %s for %s payload %s returned error: %s",
+                                        send_url,
+                                        vid,
+                                        data,
+                                        j,
+                                    )
+                                    continue
+                                if 'success' in j and bool(j.get('success')):
+                                    self.logger.debug(
+                                        "Triggered farm assistant AJAX %s for %s with payload %s (json success)",
+                                        send_url,
+                                        vid,
+                                        data,
+                                    )
+                                    return True
+                                if 'data' in j:
+                                    self.logger.debug(
+                                        "Triggered farm assistant AJAX %s for %s with payload %s (json data)",
+                                        send_url,
+                                        vid,
+                                        data,
+                                    )
+                                    return True
+                            json_ok = True
+                        except Exception:
+                            json_ok = False
+                        if resp.status_code == 200 and not json_ok and 'error' not in (resp.text or '').lower():
+                            self.logger.debug(
+                                "Triggered farm assistant AJAX %s for %s with payload %s (text success)",
+                                send_url,
+                                vid,
+                                data,
+                            )
+                            return True
+                        if resp.status_code == 200 and json_ok:
+                            self.logger.debug(
+                                "Farm assistant AJAX %s for %s payload %s returned non-success json: %s",
+                                send_url,
+                                vid,
+                                data,
+                                resp.text,
+                            )
+                    except Exception as e:
+                        self.logger.debug(
+                            "Farm assistant AJAX request failed for %s with payload %s: %s",
+                            send_url,
+                            data,
+                            e,
+                        )
+                        continue
+            attempts = []
+            if isinstance(link, dict):
+                if link.get('href') and 'screen=am_farm' in (link.get('href') or ''):
+                    attempts.append(link.get('href'))
+                if link.get('onclick') and re.search(r'sendUnits', link.get('onclick')):
+                    attempts.append(f"game.php?village={self.village_id}&screen=am_farm&farm_icon_{button.lower()}={vid}")
+                    if tpl:
+                        attempts.append(f"game.php?village={self.village_id}&screen=am_farm&template={tpl}")
+                        attempts.append(f"game.php?village={self.village_id}&screen=am_farm&send=1&target={vid}&template={tpl}")
+                    attempts.append(f"game.php?village={self.village_id}&screen=am_farm&farm_village={vid}")
+            ajax_headers = dict(self.wrapper.headers)
+            ajax_headers.update({
+                'Accept': "application/json, text/javascript, */*; q=0.01",
+                'X-Requested-With': "XMLHttpRequest",
+                'TribalWars-Ajax': "1",
+                'tribalwars-ajax': "1",
+            })
+            for url in attempts:
                 try:
-                    resp = self.wrapper.post_url(url=send_url, data=data)
+                    resp = self.wrapper.get_url(url, headers=ajax_headers)
                     if not resp:
                         continue
-                    # prefer JSON responses for ajax endpoints
-                    json_ok = False
+                    text = resp.text if hasattr(resp, 'text') else ''
+                    ctype = ''
                     try:
-                        j = resp.json()
-                        if isinstance(j, dict):
-                            if j.get('error'):
-                                self.logger.debug("Farm assistant AJAX %s for %s payload %s returned error: %s", send_url, vid, data, j)
-                                continue
-                            if 'success' in j and bool(j.get('success')):
-                                self.logger.debug("Triggered farm assistant AJAX %s for %s with payload %s (json success)", send_url, vid, data)
-                                return True
-                            if 'data' in j:
-                                self.logger.debug("Triggered farm assistant AJAX %s for %s with payload %s (json data)", send_url, vid, data)
-                                return True
-                        json_ok = True
+                        ctype = resp.headers.get('Content-Type', '')
                     except Exception:
-                        json_ok = False
-                    if resp.status_code == 200 and not json_ok and 'error' not in (resp.text or '').lower():
-                        self.logger.debug("Triggered farm assistant AJAX %s for %s with payload %s (text success)", send_url, vid, data)
-                        return True
-                    if resp.status_code == 200 and json_ok:
-                        self.logger.debug("Farm assistant AJAX %s for %s payload %s returned non-success json: %s", send_url, vid, data, resp.text)
-                except Exception as e:
-                    self.logger.debug("Farm assistant AJAX request failed for %s with payload %s: %s", send_url, data, e)
-                    continue
-
-        # Try several am_farm trigger patterns using href/onclick/template info
-        attempts = []
-        if isinstance(link, dict):
-            if link.get('href') and 'screen=am_farm' in (link.get('href') or ''):
-                attempts.append(link.get('href'))
-            if link.get('onclick') and re.search(r'sendUnits', link.get('onclick')):
-                # try common patterns
-                attempts.append(f"game.php?village={self.village_id}&screen=am_farm&farm_icon_{button.lower()}={vid}")
-                tpl = link.get('template')
-                if tpl:
-                    attempts.append(f"game.php?village={self.village_id}&screen=am_farm&template={tpl}")
-                    attempts.append(f"game.php?village={self.village_id}&screen=am_farm&send=1&target={vid}&template={tpl}")
-                # generic fallback param
-                attempts.append(f"game.php?village={self.village_id}&screen=am_farm&farm_village={vid}")
-
-        ajax_headers = dict(self.wrapper.headers)
-        ajax_headers.update({
-            'Accept': "application/json, text/javascript, */*; q=0.01",
-            'X-Requested-With': "XMLHttpRequest",
-            'TribalWars-Ajax': "1",
-            'tribalwars-ajax': "1",
-        })
-
-        for url in attempts:
-            try:
-                resp = self.wrapper.get_url(url, headers=ajax_headers)
-                if not resp:
-                    continue
-                text = resp.text if hasattr(resp, 'text') else ''
-                ctype = ''
-                try:
-                    ctype = resp.headers.get('Content-Type', '')
+                        pass
+                    is_json = False
+                    if 'application/json' in ctype or text.strip().startswith('{') or text.strip().startswith('['):
+                        is_json = True
+                    if is_json or 'json=1' in url or 'ajaxaction' in url:
+                        try:
+                            j = resp.json()
+                            if isinstance(j, dict):
+                                if j.get('error'):
+                                    continue
+                                if 'success' in j and bool(j.get('success')):
+                                    self.logger.debug("Triggered farm assistant URL %s for %s (json success)", url, vid)
+                                    return True
+                                if 'data' in j:
+                                    self.logger.debug("Triggered farm assistant URL %s for %s (json data)", url, vid)
+                                    return True
+                            if 'ok' in text.lower() or 'success' in text.lower():
+                                self.logger.debug("Triggered farm assistant URL %s for %s (text ok)", url, vid)
+                                return True
+                        except Exception:
+                            if 'ok' in text.lower() or 'success' in text.lower():
+                                self.logger.debug("Triggered farm assistant URL %s for %s (text ok fallback)", url, vid)
+                                return True
+                    else:
+                        self.logger.debug("Ignored non-AJAX GET %s for %s (not treated as send)", url, vid)
+                        continue
                 except Exception:
-                    pass
-                # Prefer JSON/ajax responses: accept only when response is JSON or URL explicitly asks for json
-                is_json = False
-                if 'application/json' in ctype or text.strip().startswith('{') or text.strip().startswith('['):
-                    is_json = True
-                if is_json or 'json=1' in url or 'ajaxaction' in url:
-                    try:
-                        j = resp.json()
-                        if isinstance(j, dict):
-                            if j.get('error'):
-                                continue
-                            if 'success' in j and bool(j.get('success')):
-                                self.logger.debug("Triggered farm assistant URL %s for %s (json success)", url, vid)
-                                return True
-                            if 'data' in j:
-                                self.logger.debug("Triggered farm assistant URL %s for %s (json data)", url, vid)
-                                return True
-                        # otherwise, if text contains ok-like markers
-                        if 'ok' in text.lower() or 'success' in text.lower():
-                            self.logger.debug("Triggered farm assistant URL %s for %s (text ok)", url, vid)
-                            return True
-                    except Exception:
-                        # fallback: if not parseable JSON but looks like success text
-                        if 'ok' in text.lower() or 'success' in text.lower():
-                            self.logger.debug("Triggered farm assistant URL %s for %s (text ok fallback)", url, vid)
-                            return True
-                else:
-                    # not an ajax/json endpoint — don't assume a GET of a page equals sending troops
-                    self.logger.debug("Ignored non-AJAX GET %s for %s (not treated as send)", url, vid)
                     continue
-            except Exception:
-                continue
+            return False
 
-        # When farm_assistant is enabled we must not fall back to screen=place — fail gracefully
+        button, link = res
+        if not (getattr(self, 'farm_assistant_rules', None) or []):
+            target = self.farm_assistant_targets.get(str(vid)) if hasattr(self, 'farm_assistant_targets') else None
+            buttons = []
+            if isinstance(target, dict):
+                buttons = [b for b in ['A', 'B', 'C'] if b in target.get('links', {}) and not target['links'][b].get('disabled')]
+            else:
+                buttons = [button]
+            for btn in buttons:
+                link = target['links'][btn]
+                self.logger.debug("Trying farm assistant button %s for %s", btn, vid)
+                if _attempt_link(btn, link):
+                    return True
+        else:
+            if _attempt_link(button, link):
+                return True
+
         if self.farm_assistant:
             self.logger.debug("Unable to trigger farm assistant action for %s via am_farm patterns", vid)
             return False
